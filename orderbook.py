@@ -10,10 +10,11 @@ MAGENTA = "\033[95m"
 BOLD = "\033[1m"
 
 class OrderBook:
-    def __init__(self):
+    def __init__(self, analytics_queue=None):
         self.orders = []
         self.exchanges = []
         self.lock = threading.Lock()
+        self.analytics_queue = analytics_queue
 
     def set_exchanges(self, exchange_queues):
         self.exchanges = exchange_queues
@@ -54,6 +55,9 @@ class OrderBook:
                             from random import choice
                             choice(self.exchanges).put(trade_info)
                             print(f"  📤 Sent trade info to exchange.\n")
+
+                        if self.analytics_queue:
+                            self.analytics_queue.put(trade_info)
 
                         self.orders.remove(buy)
                         self.orders.remove(sell)

@@ -9,9 +9,10 @@ class Broker(threading.Thread):
         self.broker_id = broker_id
         self.order_book = order_book
         self.market = market  # reference to the Market for dynamic pricing
+        self.running = True
 
     def run(self):
-        while True:
+        while self.running:
             order = self.create_order()
             self.place_order(order)
             time.sleep(random.randint(1, 5))
@@ -40,3 +41,6 @@ class Broker(threading.Thread):
 
     def place_order(self, order):
         self.order_book.add_order(order)
+
+    def stop(self):
+        self.running = False

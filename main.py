@@ -4,29 +4,51 @@ from exchange import Exchange
 from multiprocessing import Queue
 import time
 from market import Market
+import sys
+from gui import AnalyticsGUI
+from analytics import Analytics
 
-# Create order book
-order_book = OrderBook()
+analytics_queue = Queue()
+analytics = Analytics(analytics_queue)
 
-# Setup exchanges (add random failover behavior for simulating partition tolerance)
-exchange_queues = [Queue() for _ in range(2)]
-exchanges = [Exchange(i+1, exchange_queues[i]) for i in range(2)]
+def run_simulation():
+    
+    order_book = OrderBook(analytics_queue)
 
-# Start exchanges
-for ex in exchanges:
-    ex.start()
+    exchange_queues = [Queue() for _ in range(5)]
+    exchanges = [Exchange(i, exchange_queues[i]) for i in range(5)]
+    for ex in exchanges:
+        ex.start()
 
-# Tell the order book about exchange queues
-order_book.set_exchanges(exchange_queues)
+    order_book.set_exchanges(exchange_queues)
 
-market = Market(stocks=[f"STOCK{i}" for i in range(1, 6)])
-market.start()
+    market = Market(stocks=[f"STOCK{i}" for i in range(1, 6)])
+    market.start()
 
-# Start brokers
-brokers = [Broker(i+1, order_book, market) for i in range(1, 4)]
-for broker in brokers:
-    broker.start()
+    brokers = [Broker(i + 1, order_book, market) for i in range(1, 4)]
+    for broker in brokers:
+        broker.start()
 
-# Let it run for a while
-time.sleep(30)
-print("Simulation complete.")
+    time.sleep(50)
+
+    for broker in brokers:
+        broker.stop()
+        broker.join()
+
+    market.stop()
+    market.join()
+
+    for ex in exchanges:
+        ex.stop()
+        ex.join()
+
+    analytics.collect()
+    analytics.print_summary()
+
+    print("\n✅ Simulation complete.")
+    sys.exit(0)
+
+if __name__ == "__main__":
+    gui = AnalyticsGUI(analytics_queue=analytics_queue)
+    gui.start()
+    run_simulation()
