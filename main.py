@@ -29,7 +29,8 @@ def run_simulation():
     for broker in brokers:
         broker.start()
 
-    time.sleep(50)
+    # simulation will run for 60 seconds
+    time.sleep(60)
 
     for broker in brokers:
         broker.stop()
